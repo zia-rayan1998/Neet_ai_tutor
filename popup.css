@@ -1,0 +1,120 @@
+body {
+  width: 380px;
+  min-height: 500px;
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.status {
+  text-align: center;
+  padding: 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.status.on { background: #166534; color: #bbf7d0; }
+.status.off { background: #7f1d1d; color: #fecaca; }
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+button:hover:not(:disabled) {
+  background: #334155;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.chat {
+  height: 300px;
+  overflow-y: auto;
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.message {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
+.user { background: #1e40af; }
+.assistant { background: #334155; }
+
+.input-area {
+  display: flex;
+  gap: 6px;
+}
+
+input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: white;
+}
+
+/* Toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #64748b;
+  transition: .3s;
+  border-radius: 24px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; width: 18px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider { background-color: #22c55e; }
+input:checked + .slider:before { transform: translateX(24px); }
