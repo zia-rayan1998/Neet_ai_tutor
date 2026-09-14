@@ -91,36 +91,58 @@ function openChatPanel() {
   `;
 
   chatPanel.innerHTML = `
-    <div style="padding: 12px 16px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
-      <strong style="font-size: 15px;">NEET AI Tutor</strong>
-      <span id="neet-close" style="cursor:pointer; font-size:22px; line-height:1;">×</span>
-    </div>
+  <div style="padding: 12px 16px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
+    <strong style="font-size: 15px;">NEET AI Tutor</strong>
+    <span id="neet-close" style="cursor:pointer; font-size:22px; line-height:1;">×</span>
+  </div>
 
-    <div id="neet-messages" style="flex:1; overflow-y:auto; padding:14px; font-size:13.5px; line-height:1.55;"></div>
+  <div id="neet-messages" style="flex:1; overflow-y:auto; padding:14px; font-size:13.5px; line-height:1.55;"></div>
 
-    <div style="padding:10px; border-top:1px solid #334155; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <button id="neet-analyze" style="padding:9px; background:#1e40af; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Analyze Selected</button>
-      <button id="neet-hint" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Give Hint</button>
-      <button id="neet-next" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Next Hint</button>
-      <button id="neet-solution" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Full Solution</button>
-      <button id="neet-summary" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Summarize</button>
-      <button id="neet-mindmap" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Mind Map</button>
-      <button id="neet-clear" style="padding:9px; background:#7f1d1d; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Clear Chat</button>
-    </div>
-  `;
+  <div style="padding:10px; border-top:1px solid #334155; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+    <button id="neet-analyze" style="padding:9px; background:#1e40af; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Analyze Selected</button>
+    <button id="neet-hint" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Give Hint</button>
+    <button id="neet-next" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Next Hint</button>
+    <button id="neet-solution" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Full Solution</button>
+    <button id="neet-summary" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Summarize</button>
+    <button id="neet-mindmap" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Mind Map</button>
+    <button id="neet-clear" style="padding:9px; background:#7f1d1d; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px; grid-column: span 2;">Clear Chat</button>
+  </div>
 
+  <div style="padding: 10px; border-top: 1px solid #334155; display: flex; gap: 8px;">
+    <input id="neet-input" type="text" placeholder="Ask anything about the question..." 
+      style="flex:1; padding:10px 12px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:white; font-size:13.5px; outline:none;">
+    <button id="neet-send" style="padding:10px 16px; background:#22c55e; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Send</button>
+  </div>
+`;
   document.body.appendChild(chatPanel);
 
   // Event listeners
-  document.getElementById("neet-close").onclick = () => chatPanel.style.display = "none";
+ document.getElementById("neet-close").onclick = () => chatPanel.style.display = "none";
 
-  document.getElementById("neet-analyze").onclick = analyzeSelected;
-  document.getElementById("neet-hint").onclick = () => sendToAI("Give me only a gentle first hint. Do not reveal the answer yet.");
-  document.getElementById("neet-next").onclick = () => sendToAI("Give me the next level of hint. Still do not give the full answer.");
-  document.getElementById("neet-solution").onclick = () => sendToAI("Now give the complete step-by-step solution with explanation, final answer, and common mistakes.");
-  document.getElementById("neet-summary").onclick = () => sendToAI("Summarize the content clearly for NEET preparation. Make it concise.");
-  document.getElementById("neet-mindmap").onclick = () => sendToAI("Create a clear hierarchical mind map of the content using simple bullet points.");
-  document.getElementById("neet-clear").onclick = clearChat;
+document.getElementById("neet-analyze").onclick = analyzeSelected;
+document.getElementById("neet-hint").onclick = () => sendToAI("Give me only a gentle first hint. Do not reveal the answer yet.");
+document.getElementById("neet-next").onclick = () => sendToAI("Give me the next level of hint. Still do not give the full answer.");
+document.getElementById("neet-solution").onclick = () => sendToAI("Now give the complete step-by-step solution with explanation, final answer, and common mistakes.");
+document.getElementById("neet-summary").onclick = () => sendToAI("Summarize the content clearly for NEET preparation. Make it concise.");
+document.getElementById("neet-mindmap").onclick = () => sendToAI("Create a clear hierarchical mind map of the content using simple bullet points.");
+document.getElementById("neet-clear").onclick = clearChat;
+
+// Chat input
+const input = document.getElementById("neet-input");
+const sendBtn = document.getElementById("neet-send");
+
+sendBtn.onclick = () => {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  sendToAI(text);
+};
+
+input.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    sendBtn.click();
+  }
+});
 
   // Load previous messages
   renderMessages();
