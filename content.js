@@ -73,18 +73,26 @@ function toggleChatPanel() {
   }
 }
 function loadTesseract() {
+  if (window.Tesseract) {
+    return Promise.resolve(window.Tesseract);
+  }
+
   return new Promise((resolve, reject) => {
-    if (window.Tesseract) {
-      resolve(window.Tesseract);
-      return;
-    }
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-    script.onload = () => resolve(window.Tesseract);
-    script.onerror = reject;
+    script.crossOrigin = "anonymous";
+    script.onload = () => {
+      if (window.Tesseract) {
+        resolve(window.Tesseract);
+      } else {
+        reject(new Error("Tesseract loaded but is not available on window."));
+      }
+    };
+    script.onerror = () => reject(new Error("Could not load Tesseract.js from the CDN."));
     document.head.appendChild(script);
   });
 }
+
 async function handleOCRUpload(file) {
   if (!file) return;
 
@@ -108,7 +116,6 @@ async function handleOCRUpload(file) {
       return;
     }
 
-    // Save extracted text so existing AI functions can use it
     pageContent = extractedText;
     currentImageBase64 = null;
 
@@ -116,10 +123,9 @@ async function handleOCRUpload(file) {
     addMessage("assistant", 
       `Text extracted successfully:\n\n${extractedText.substring(0, 700)}${extractedText.length > 700 ? "\n\n...(truncated)" : ""}\n\nNow click Give Hint or Full Solution.`
     );
-
   } catch (err) {
-    console.error(err);
-    addMessage("assistant", "OCR failed. Please try another image.");
+    console.error("OCR error:", err);
+    addMessage("assistant", `OCR failed: ${err && err.message ? err.message : "unknown reason"}`);
   }
 }
 // Load Tesseract.js dynamically
