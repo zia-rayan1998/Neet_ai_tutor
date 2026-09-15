@@ -24,6 +24,13 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.apiKey) apiKey = changes.apiKey.newValue;
 });
 
+// Hidden file input for OCR
+const ocrInput = document.createElement("input");
+ocrInput.type = "file";
+ocrInput.accept = "image/*";
+ocrInput.style.display = "none";
+document.body.appendChild(ocrInput);
+
 // ========== CREATE FLOATING UI ==========
 function createFloatingUI() {
   if (floatingBtn) return;
@@ -65,12 +72,65 @@ function toggleChatPanel() {
     openChatPanel();
   }
 }
+function loadTesseract() {
+  return new Promise((resolve, reject) => {
+    if (window.Tesseract) {
+      resolve(window.Tesseract);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    script.onload = () => resolve(window.Tesseract);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+async function handleOCRUpload(file) {
+  if (!file) return;
+
+  addMessage("assistant", "Extracting text from image... Please wait a few seconds.");
+
+  try {
+    const Tesseract = await loadTesseract();
+
+    const result = await Tesseract.recognize(file, "eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          console.log("OCR Progress:", Math.round(m.progress * 100) + "%");
+        }
+      }
+    });
+
+    const extractedText = result.data.text.trim();
+
+    if (!extractedText || extractedText.length < 10) {
+      addMessage("assistant", "Could not extract clear text.\n\nTry a clearer or cropped screenshot.");
+      return;
+    }
+
+    // Save extracted text so existing AI functions can use it
+    pageContent = extractedText;
+    currentImageBase64 = null;
+
+    addMessage("user", "Image uploaded for OCR");
+    addMessage("assistant", 
+      `Text extracted successfully:\n\n${extractedText.substring(0, 700)}${extractedText.length > 700 ? "\n\n...(truncated)" : ""}\n\nNow click Give Hint or Full Solution.`
+    );
+
+  } catch (err) {
+    console.error(err);
+    addMessage("assistant", "OCR failed. Please try another image.");
+  }
+}
+// Load Tesseract.js dynamically
+
 
 function openChatPanel() {
   if (chatPanel) {
     chatPanel.style.display = "flex";
     return;
   }
+  
 
   chatPanel = document.createElement("div");
   chatPanel.style.cssText = `
@@ -106,6 +166,9 @@ function openChatPanel() {
     <button id="neet-summary" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Summarize</button>
     <button id="neet-mindmap" style="padding:9px; background:#334155; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">Mind Map</button>
     <button id="neet-clear" style="padding:9px; background:#7f1d1d; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px; grid-column: span 2;">Clear Chat</button>
+    <button id="neet-ocr" style="padding:9px; background:#7c3aed; color:white; border:none; border-radius:7px; cursor:pointer; font-size:13px;">
+  Upload Image (OCR)
+</button>
   </div>
 
   <div style="padding: 10px; border-top: 1px solid #334155; display: flex; gap: 8px;">
@@ -126,6 +189,18 @@ document.getElementById("neet-solution").onclick = () => sendToAI("Now give the 
 document.getElementById("neet-summary").onclick = () => sendToAI("Summarize the content clearly for NEET preparation. Make it concise.");
 document.getElementById("neet-mindmap").onclick = () => sendToAI("Create a clear hierarchical mind map of the content using simple bullet points.");
 document.getElementById("neet-clear").onclick = clearChat;
+// OCR Button
+document.getElementById("neet-ocr").onclick = () => {
+  ocrInput.click();
+};
+
+ocrInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    handleOCRUpload(file);
+  }
+  ocrInput.value = ""; // reset so same file can be selected again
+};
 
 // Chat input
 const input = document.getElementById("neet-input");
@@ -151,19 +226,13 @@ input.addEventListener("keypress", (e) => {
 function analyzeSelected() {
   const selection = window.getSelection().toString().trim();
 
-  // Clear previous
-  conversation = [];
-  pageContent = "";
-  currentImageBase64 = null;
-  chrome.storage.local.set({ conversation: [] });
-  renderMessages();
-
   if (selection.length < 15) {
     addMessage("assistant", "Please select the question text first, then click Analyze Selected.");
     return;
   }
 
   pageContent = selection;
+  currentImageBase64 = null;
   addMessage("user", "Question selected");
   addMessage("assistant", "Question captured successfully!\n\nNow click Give Hint or Full Solution.");
 }
@@ -171,6 +240,7 @@ function analyzeSelected() {
 function clearChat() {
   conversation = [];
   pageContent = "";
+  currentImageBase64 = null;
   chrome.storage.local.set({ conversation: [] });
   renderMessages();
 }
@@ -201,16 +271,26 @@ function renderMessages() {
   container.scrollTop = container.scrollHeight;
 }
 
+function askForApiKey() {
+  const key = window.prompt("Enter your Groq API Key:");
+  if (!key) return null;
+
+  const trimmedKey = key.trim();
+  if (!trimmedKey) return null;
+
+  apiKey = trimmedKey;
+  chrome.storage.local.set({ apiKey });
+  return apiKey;
+}
+
 // ========== AI FUNCTION ==========
 async function sendToAI(userMessage) {
   if (!apiKey) {
-    const key = prompt("Enter your Groq API Key:");
+    const key = askForApiKey();
     if (!key) {
       addMessage("assistant", "API key is required.");
       return;
     }
-    apiKey = key.trim();
-    chrome.storage.local.set({ apiKey });
   }
 
   if (!pageContent) {
@@ -259,6 +339,11 @@ Speak simply like teaching a student.
 Current question:
 ${pageContent.slice(0, 8000)}`;
 
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...conversation.slice(-10)
+  ];
+
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -268,11 +353,7 @@ ${pageContent.slice(0, 8000)}`;
       },
       body: JSON.stringify({
         model: "openai/gpt-oss-20b",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...conversation.slice(-6),
-          { role: "user", content: userMessage }
-        ],
+        messages,
         temperature: 0.25,
         max_tokens: 1600
       })
@@ -280,13 +361,21 @@ ${pageContent.slice(0, 8000)}`;
 
     const data = await response.json();
 
-    if (data.error) {
-      addMessage("assistant", "Error: " + data.error.message);
+    if (!response.ok || data.error) {
+      const message = data?.error?.message || "Unknown API error.";
+      addMessage("assistant", `API error: ${message}`);
       return;
     }
 
-    addMessage("assistant", data.choices[0].message.content);
+    const assistantReply = data?.choices?.[0]?.message?.content;
+    if (!assistantReply) {
+      addMessage("assistant", "The AI returned an empty response. Please try again.");
+      return;
+    }
+
+    addMessage("assistant", assistantReply);
   } catch (err) {
+    console.error(err);
     addMessage("assistant", "Network error. Please try again.");
   }
 }
